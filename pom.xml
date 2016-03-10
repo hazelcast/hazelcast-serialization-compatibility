@@ -4,7 +4,7 @@
 
     <groupId>com.hazelcast</groupId>
     <artifactId>hazelcast-serialization-compatibility</artifactId>
-    <version>2.1</version>
+    <version>1.0</version>
     <packaging>jar</packaging>
 
     <name>hazelcast-serialization-compatibility</name>
@@ -15,7 +15,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <jdk.version>1.6</jdk.version>
         <serialization.version>1</serialization.version>
-        <hazelcast.version>3.6</hazelcast.version>
+        <hazelcast.version>3.7-SNAPSHOT</hazelcast.version>
     </properties>
 
     <build>
