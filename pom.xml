@@ -4,7 +4,7 @@
 
     <groupId>com.hazelcast</groupId>
     <artifactId>hazelcast-serialization-compatibility</artifactId>
-    <version>1.0</version>
+    <version>1.master</version>
     <packaging>jar</packaging>
 
     <name>hazelcast-serialization-compatibility</name>
