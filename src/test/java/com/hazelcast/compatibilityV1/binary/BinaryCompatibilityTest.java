@@ -25,23 +25,22 @@ import com.hazelcast.nio.serialization.ClassDefinitionBuilder;
 import com.hazelcast.nio.serialization.Data;
 import com.hazelcast.spi.serialization.SerializationService;
 import com.hazelcast.test.annotation.QuickTest;
-import org.junit.Ignore;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.reflect.Array;
 import java.nio.ByteOrder;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 
 import static junit.framework.TestCase.assertTrue;
 
@@ -51,6 +50,7 @@ public class BinaryCompatibilityTest {
 
     public static byte version = 1;
     private static final int NULL_OBJECT = -1;
+    private static Map<String, Data> dataMap = new HashMap<String, Data>();
 
     @Parameterized.Parameter(0)
     public boolean allowUnsafe;
@@ -58,50 +58,50 @@ public class BinaryCompatibilityTest {
     public Object object;
     @Parameterized.Parameter(2)
     public ByteOrder byteOrder;
-    @Parameterized.Parameter(3)
-    public boolean enableSharedObject;
-    @Parameterized.Parameter(4)
-    public boolean enableCompression;
-    @Parameterized.Parameter(5)
-    public boolean useNativeByteOrder;
 
-    @Parameterized.Parameters(name = "allowUnsafe:{0} , object:{1}, isBigEndian:{2}, enableSharedObject:{3}, enableCompression:{4}, useNativeByteOrder:{5}")
+    @BeforeClass
+    public static void init() throws IOException {
+        InputStream input = BinaryCompatibilityTest.class.getResourceAsStream("/" + createFileName());
+        DataInputStream inputStream = new DataInputStream(input);
+        while (input.available() != 0) {
+            String objectKey = inputStream.readUTF();
+            int length = inputStream.readInt();
+            if (length != NULL_OBJECT) {
+                byte[] bytes = new byte[length];
+                inputStream.read(bytes);
+                dataMap.put(objectKey, new HeapData(bytes));
+            }
+
+        }
+        inputStream.close();
+    }
+
+    @Parameterized.Parameters(name = "allowUnsafe:{0} , object:{1}, isBigEndian:{2}")
     public static Iterable<Object[]> parameters() {
 
         Object[] objects = ReferenceObjects.allTestObjects;
 
         boolean[] unsafeAllowedOpts = {true, false};
-        boolean[] enableSharedObjectOpts = {true, false};
-        boolean[] enableCompressionOpts = {true, false};
-        boolean[] useNativeByteOrderOpts = {true, false};
 
         ByteOrder[] byteOrders = {ByteOrder.BIG_ENDIAN, ByteOrder.LITTLE_ENDIAN};
         LinkedList<Object[]> parameters = new LinkedList<Object[]>();
-        for (boolean unsafeAllowed : unsafeAllowedOpts) {
+        for (boolean allowUnsafe : unsafeAllowedOpts) {
             for (Object object : objects) {
                 for (ByteOrder byteOrder : byteOrders) {
-                    for (boolean enableSharedObject : enableSharedObjectOpts) {
-                        for (boolean enableCompression : enableCompressionOpts) {
-                            for (boolean useNativeByteOrder : useNativeByteOrderOpts) {
-                                parameters.add(new Object[]{unsafeAllowed, object, byteOrder, enableSharedObject, enableCompression, useNativeByteOrder});
-                            }
-                        }
-                    }
+                    parameters.add(new Object[]{allowUnsafe, object, byteOrder});
                 }
             }
         }
-
         return parameters;
     }
 
-    private String createFileName() {
-        return version + "-" +
-                allowUnsafe + "-" +
-                (object == null ? "NULL" : object.getClass().getSimpleName()) + "-" +
-                byteOrder + "-" +
-                enableSharedObject + "-" +
-                enableCompression + "-" +
-                useNativeByteOrder + ".binary";
+    private String creteObjectKey() {
+        return (object == null ? "NULL" : object.getClass().getSimpleName()) + "-" + byteOrder;
+    }
+
+
+    private static String createFileName() {
+        return version + ".binary";
     }
 
     private SerializationService createSerializationService() {
@@ -124,9 +124,6 @@ public class BinaryCompatibilityTest {
                 .setVersion(version)
                 .setByteOrder(byteOrder)
                 .setAllowUnsafe(allowUnsafe)
-                .setEnableCompression(enableCompression)
-                .setEnableSharedObject(enableSharedObject)
-                .setUseNativeByteOrder(useNativeByteOrder)
                 .addPortableFactory(ReferenceObjects.PORTABLE_FACTORY_ID, new APortableFactory())
                 .addDataSerializableFactory(ReferenceObjects.IDENTIFIED_DATA_SERIALIZABLE_FACTORY_ID,
                         new ADataSerializableFactory())
@@ -136,49 +133,11 @@ public class BinaryCompatibilityTest {
     }
 
     @Test
-    public void readAndVerifyCreatedBinaryFiles() throws IOException {
-        InputStream input = BinaryCompatibilityTest.class.getResourceAsStream("/" + createFileName());
-        DataInputStream inputStream = new DataInputStream(input);
-        int length = inputStream.readInt();
-        HeapData data = null;
-        if (length != NULL_OBJECT) {
-            byte[] bytes = new byte[length];
-            inputStream.read(bytes);
-            data = new HeapData(bytes);
-        }
-        inputStream.close();
+    public void readAndVerifyBinaries() throws IOException {
+        String key = creteObjectKey();
         SerializationService serializationService = createSerializationService();
-        Object readObject = serializationService.toObject(data);
-
+        Object readObject = serializationService.toObject(dataMap.get(key));
         assertTrue(equals(object, readObject));
-    }
-
-
-    /**
-     * This method is used for generating binary files to be committed at the beginning of
-     * introducing a new serialization service. Run this method once and move the created files to resources
-     * directory.
-     * <p/>
-     * mv *binary src/test/resources/
-     *
-     * @throws IOException
-     */
-    @Test
-    @Ignore
-    public void generateBinaryFiles() throws IOException {
-        SerializationService serializationService = createSerializationService();
-        Data data = serializationService.toData(object);
-        OutputStream out = new FileOutputStream(createFileName());
-        DataOutputStream outputStream = new DataOutputStream(out);
-        if (data == null) {
-            outputStream.writeInt(NULL_OBJECT);
-            out.close();
-            return;
-        }
-        byte[] bytes = data.toByteArray();
-        outputStream.writeInt(bytes.length);
-        out.write(bytes);
-        out.close();
     }
 
     @Test
@@ -188,7 +147,6 @@ public class BinaryCompatibilityTest {
         Object readObject = serializationService.toObject(data);
         assertTrue(equals(object, readObject));
     }
-
 
     public static boolean equals(Object a, Object b) {
         if (a == b) {

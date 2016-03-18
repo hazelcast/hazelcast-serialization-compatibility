@@ -24,6 +24,7 @@ import java.io.Externalizable;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.CharBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -62,7 +63,18 @@ class ReferenceObjects {
     static float aFloat = 900.5678f;
     static int anInt = 56789;
     static long aLong = -50992225L;
-    static String aString = "this is main portable object created for testing!";
+    static String aString;
+
+    static {
+        CharBuffer cb = CharBuffer.allocate(Character.MAX_VALUE);
+        for (char c = 0; c < Character.MAX_VALUE; c++) {
+            if (Character.isLetter(c)) {
+                cb.append(c);
+            }
+        }
+        aString = new String(cb.array());
+    }
+
     static boolean[] booleans = {true, false, true};
 
     static byte[] bytes = {112, 4, -1, 4, 112, -35, 43};
@@ -72,7 +84,10 @@ class ReferenceObjects {
     static float[] floats = {900.5678f, 1.0f, 2.1f, 3.4f};
     static int[] ints = {56789, 2, 3};
     static long[] longs = {-50992225L, 1231232141L, 2L, 3L};
-    static String[] strings = {"item1", "item2", "item3"};
+    static String[] strings = {"Pijamalı hasta, yağız şoföre çabucak güvendi.",
+            "イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム",
+            "The quick brown fox jumps over the lazy dog"};
+
 
     static AnInnerPortable anInnerPortable = new AnInnerPortable(anInt, aFloat);
     static CustomStreamSerializable aCustomStreamSerializable = new CustomStreamSerializable(anInt, aFloat);

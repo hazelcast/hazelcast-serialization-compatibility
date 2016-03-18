@@ -101,7 +101,10 @@ public class AnIdentifiedDataSerializable implements IdentifiedDataSerializable 
         this.bytesFully = bytes;
         this.bytesOffset = Arrays.copyOfRange(bytes, 1, 3);
         this.strChars = str.toCharArray();
-        this.strBytes = str.getBytes();
+        this.strBytes = new byte[str.length()];
+        for (int j = 0; j < str.length(); j++) {
+            strBytes[j] = (byte) strChars[j];
+        }
         unsignedByte = Byte.MAX_VALUE + 100;
         unsignedShort = Short.MAX_VALUE + 100;
 
@@ -162,9 +165,9 @@ public class AnIdentifiedDataSerializable implements IdentifiedDataSerializable 
         dataOutput.write(byteSize);
         dataOutput.write(bytes);
         dataOutput.write(bytes, 1, 2);
-        dataOutput.write(str.length());
-        dataOutput.writeBytes(str);
+        dataOutput.writeInt(str.length());
         dataOutput.writeChars(str);
+        dataOutput.writeBytes(str);
         dataOutput.writeByte(unsignedByte);
         dataOutput.writeShort(unsignedShort);
 
@@ -211,13 +214,13 @@ public class AnIdentifiedDataSerializable implements IdentifiedDataSerializable 
         dataInput.readFully(bytesFully);
         bytesOffset = new byte[2];
         dataInput.readFully(bytesOffset, 0, 2);
-        byte strSize = dataInput.readByte();
-        strBytes = new byte[strSize];
-        dataInput.readFully(strBytes);
+        int strSize = dataInput.readInt();
         strChars = new char[strSize];
         for (int j = 0; j < strSize; j++) {
             strChars[j] = dataInput.readChar();
         }
+        strBytes = new byte[strSize];
+        dataInput.readFully(strBytes);
         unsignedByte = dataInput.readUnsignedByte();
         unsignedShort = dataInput.readUnsignedShort();
 
@@ -277,52 +280,6 @@ public class AnIdentifiedDataSerializable implements IdentifiedDataSerializable 
             return false;
         return !(customByteArraySerializableObject != null ? !customByteArraySerializableObject.equals(that.customByteArraySerializableObject) : that.customByteArraySerializableObject != null);
 
-    }
-
-    @Override
-    public int hashCode() {
-        int result;
-        long temp;
-        result = (bool ? 1 : 0);
-        result = 31 * result + (int) b;
-        result = 31 * result + (int) c;
-        temp = Double.doubleToLongBits(d);
-        result = 31 * result + (int) (temp ^ (temp >>> 32));
-        result = 31 * result + (int) s;
-        result = 31 * result + (f != +0.0f ? Float.floatToIntBits(f) : 0);
-        result = 31 * result + i;
-        result = 31 * result + (int) (l ^ (l >>> 32));
-        result = 31 * result + (str != null ? str.hashCode() : 0);
-        result = 31 * result + (booleans != null ? Arrays.hashCode(booleans) : 0);
-        result = 31 * result + (bytes != null ? Arrays.hashCode(bytes) : 0);
-        result = 31 * result + (chars != null ? Arrays.hashCode(chars) : 0);
-        result = 31 * result + (doubles != null ? Arrays.hashCode(doubles) : 0);
-        result = 31 * result + (shorts != null ? Arrays.hashCode(shorts) : 0);
-        result = 31 * result + (floats != null ? Arrays.hashCode(floats) : 0);
-        result = 31 * result + (ints != null ? Arrays.hashCode(ints) : 0);
-        result = 31 * result + (longs != null ? Arrays.hashCode(longs) : 0);
-        result = 31 * result + (strings != null ? Arrays.hashCode(strings) : 0);
-        result = 31 * result + (booleansNull != null ? Arrays.hashCode(booleansNull) : 0);
-        result = 31 * result + (bytesNull != null ? Arrays.hashCode(bytesNull) : 0);
-        result = 31 * result + (charsNull != null ? Arrays.hashCode(charsNull) : 0);
-        result = 31 * result + (doublesNull != null ? Arrays.hashCode(doublesNull) : 0);
-        result = 31 * result + (shortsNull != null ? Arrays.hashCode(shortsNull) : 0);
-        result = 31 * result + (floatsNull != null ? Arrays.hashCode(floatsNull) : 0);
-        result = 31 * result + (intsNull != null ? Arrays.hashCode(intsNull) : 0);
-        result = 31 * result + (longsNull != null ? Arrays.hashCode(longsNull) : 0);
-        result = 31 * result + (stringsNull != null ? Arrays.hashCode(stringsNull) : 0);
-        result = 31 * result + (int) byteSize;
-        result = 31 * result + (bytesFully != null ? Arrays.hashCode(bytesFully) : 0);
-        result = 31 * result + (bytesOffset != null ? Arrays.hashCode(bytesOffset) : 0);
-        result = 31 * result + (strChars != null ? Arrays.hashCode(strChars) : 0);
-        result = 31 * result + (strBytes != null ? Arrays.hashCode(strBytes) : 0);
-        result = 31 * result + unsignedByte;
-        result = 31 * result + unsignedShort;
-        result = 31 * result + (portableObject != null ? portableObject.hashCode() : 0);
-        result = 31 * result + (identifiedDataSerializableObject != null ? identifiedDataSerializableObject.hashCode() : 0);
-        result = 31 * result + (customStreamSerializableObject != null ? customStreamSerializableObject.hashCode() : 0);
-        result = 31 * result + (customByteArraySerializableObject != null ? customByteArraySerializableObject.hashCode() : 0);
-        return result;
     }
 
     @Override
